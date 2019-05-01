@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet type='text/xsl' href='_UpgradeReport_Files/UpgradeReport.xslt'?><UpgradeLog>
+<Properties><Property Name="Solution" Value="MD_fo_mol">
+</Property><Property Name="ソリューション ファイル" Value="D:\momentum_MD\MD_for_mol_v04\MD_fo_mol.sln">
+</Property><Property Name="ユーザー オプション ファイル" Value="D:\momentum_MD\MD_for_mol_v04\MD_fo_mol.suo">
+</Property><Property Name="Date" Value="2017年12月5日">
+</Property><Property Name="Time" Value="10:46">
+</Property></Properties><Event ErrorLevel="0" Project="" Source="MD_fo_mol.sln" Description="ファイルは正常に D:\momentum_MD\MD_for_mol_v04\MD_fo_mol.sln.old としてバックアップされました。">
+</Event><Event ErrorLevel="0" Project="" Source="MD_fo_mol.suo" Description="ファイルは正常に D:\momentum_MD\MD_for_mol_v04\MD_fo_mol.suo.old としてバックアップされました。">
+</Event><Event ErrorLevel="0" Project="MD_fo_mol" Source="MD_fo_mol\MD_fo_mol.vcproj" Description="Converting project file 'D:\momentum_MD\MD_for_mol_v04\MD_fo_mol\MD_fo_mol.vcproj'.">
+</Event><Event ErrorLevel="1" Project="MD_fo_mol" Source="MD_fo_mol\MD_fo_mol.vcproj" Description="This application has been updated to include settings related to the User Account Control (UAC) feature of Windows Vista. By default, when run on Windows Vista with UAC enabled, this application is marked to run with the same privileges as the process that launched it. This marking also disables the application from running with virtualization. You can change UAC related settings from the Property Pages of the project.">
+</Event><Event ErrorLevel="1" Project="MD_fo_mol" Source="MD_fo_mol\MD_fo_mol.vcproj" Description="VCWebServiceProxyGeneratorTool is no longer supported. The tool has been removed from your project settings.">
+</Event><Event ErrorLevel="1" Project="MD_fo_mol" Source="MD_fo_mol\MD_fo_mol.vcproj" Description="Attribute 'Detect64BitPortabilityProblems' of 'VCCLCompilerTool' is not supported in this version and has been removed during conversion.">
+</Event><Event ErrorLevel="0" Project="MD_fo_mol" Source="MD_fo_mol\MD_fo_mol.vcproj" Description="Web deployment to the local IIS server is no longer supported. The Web Deployment build tool has been removed from your project settings.">
+</Event><Event ErrorLevel="1" Project="MD_fo_mol" Source="MD_fo_mol\MD_fo_mol.vcproj" Description="Attribute 'Detect64BitPortabilityProblems' of 'VCCLCompilerTool' is not supported in this version and has been removed during conversion.">
+</Event><Event ErrorLevel="0" Project="MD_fo_mol" Source="MD_fo_mol\MD_fo_mol.vcproj" Description="Done converting to new project file 'D:\momentum_MD\MD_for_mol_v04\MD_fo_mol\MD_fo_mol.vcxproj'.">
+</Event><Event ErrorLevel="3" Project="MD_fo_mol" Source="MD_fo_mol\MD_fo_mol.vcproj" Description="Converted">
+</Event><Event ErrorLevel="0" Project="" Source="MD_fo_mol.sln" Description="ソリューションは正常に変換されました">
+</Event><Event ErrorLevel="3" Project="" Source="MD_fo_mol.sln" Description="Converted">
+</Event></UpgradeLog>
