@@ -1,5 +1,4 @@
 // MD_fo_mol.cpp : コンソール アプリケーションのエントリ ポイントを定義します。
-//
 
 #include "stdafx.h"
 
@@ -136,26 +135,26 @@ public:
 void denka::message(){
 
 cout << "usage: program.exe  parameterfile " << endl; 
-cout << " " << endl; 
-cout << "パラメータファイルの書式 " << endl; 
-cout << "１行目　　開始時間[ps]  終了時間[ps]  MDステップ数[整数]  スナップショット回数" << endl; 
-cout << "　　      数字の間はスペースで区切る。" << endl; 
-cout << "　　      スナップショット回数=0ならばスナップショットを出力しない。" << endl; 
-cout << " " << endl; 
-cout << "２行目　　全粒子数　全電価数  相互作用指定 電荷buld-up時間[ps] 電荷移動時間[ps] 電荷移動CTのフラグ(=1で個別)" << endl; 
-cout << "　　　　　全粒子数 > 全電価数。" << endl; 
-cout << "　　　　　電荷移動CTのフラグ: defaultはウラシルリング全体が同じレート。=1で個別)。" << endl; 
-cout << "　　　　　相互作用: default=C: Coulomb, L: LJ, M: C+LJ, N: C+LJ+Induced dipole " << endl; 
-cout << " " << endl; 
-cout << "３行目　　シミュレーションの試行回数" << endl; 
-cout << " " << endl; 
-cout << "４行目以降に初期原子データを書く " << endl; 
-cout << "書式 " << endl; 
-cout << "ラベル  質量[amu]  x[nm] y[nm] z[nm] vx[nm/ps] vy[nm/ps] vz[nm/ps] 初期電荷 最大電荷 電荷移動CTのフラグ" << endl; 
-cout << "ラベルは５文字以内。これに従って結果を分類する。 " << endl; 
-cout << "初期電荷を置いてシミュレーション。初期電荷は０以上の整数" << endl; 
-cout << "最大電荷まで粒子にランダムに電荷を分配する。 " << endl; 
-cout << "CTのフラグ：それぞれの原子の電荷移動時間をflag×電荷移動時間にするフラグ。 " << endl; 
+// cout << " " << endl; 
+// cout << "パラメータファイルの書式 " << endl; 
+// cout << "１行目　　開始時間[ps]  終了時間[ps]  MDステップ数[整数]  スナップショット回数" << endl; 
+// cout << "　　      数字の間はスペースで区切る。" << endl; 
+// cout << "　　      スナップショット回数=0ならばスナップショットを出力しない。" << endl; 
+// cout << " " << endl; 
+// cout << "２行目　　全粒子数　全電価数  相互作用指定 電荷buld-up時間[ps] 電荷移動時間[ps] 電荷移動CTのフラグ(=1で個別)" << endl; 
+// cout << "　　　　　全粒子数 > 全電価数。" << endl; 
+// cout << "　　　　　電荷移動CTのフラグ: defaultはウラシルリング全体が同じレート。=1で個別)。" << endl; 
+// cout << "　　　　　相互作用: default=C: Coulomb, L: LJ, M: C+LJ, N: C+LJ+Induced dipole " << endl; 
+// cout << " " << endl; 
+// cout << "３行目　　シミュレーションの試行回数" << endl; 
+// cout << " " << endl; 
+// cout << "４行目以降に初期原子データを書く " << endl; 
+// cout << "書式 " << endl; 
+// cout << "ラベル  質量[amu]  x[nm] y[nm] z[nm] vx[nm/ps] vy[nm/ps] vz[nm/ps] 初期電荷 最大電荷 電荷移動CTのフラグ" << endl; 
+// cout << "ラベルは５文字以内。これに従って結果を分類する。 " << endl; 
+// cout << "初期電荷を置いてシミュレーション。初期電荷は０以上の整数" << endl; 
+// cout << "最大電荷まで粒子にランダムに電荷を分配する。 " << endl; 
+// cout << "CTのフラグ：それぞれの原子の電荷移動時間をflag×電荷移動時間にするフラグ。 " << endl; 
 exit(0);
 }
 
@@ -667,7 +666,7 @@ long double denka::force(int i ,int j)
 					break;
 				case 'M' : 
 				   for (seisu=0;seisu<PN;seisu++)  {
-						nagasa=kyori(position[i][0],position[seisu][0],position[i][1],position[seisu][1],position[i][2],position[seisu][2]);
+					   nagasa = kyori(position[i][0], position[seisu][0], position[i][1], position[seisu][1], position[i][2], position[seisu][2]);
 						   if(seisu-i) {
 							uhen=uhen+((UNIT_E*UNIT_E/(4*PI*E_0)*1e3)*charge[i]*charge[seisu]/nagasa + 4*(EPSILON * K_B *1e-6)*(-6*pow(SIGMA/nagasa,6)+12*pow(SIGMA/nagasa,12)))
 						   		 *(position[i][j]-position[seisu][j])/pow(nagasa,2) /(AMU*mass[i]);
@@ -685,13 +684,13 @@ long double denka::force(int i ,int j)
 							};
 				   };  //クーロン + LJ + イオン－誘起双極子相互作用
 					break;
-				default	: 
-				   for (seisu=0;seisu<PN;seisu++)  {
+				default	:
+				for (seisu=0;seisu<PN;seisu++){
 						nagasa=kyori(position[i][0],position[seisu][0],position[i][1],position[seisu][1],position[i][2],position[seisu][2]);
-						   if(seisu-i) {
+						if(seisu-i){
 							uhen=uhen+(UNIT_E*UNIT_E/(4*PI*E_0)*1e3)*charge[i]*charge[seisu]*(position[i][j]-position[seisu][j])/pow(nagasa,3) /(AMU*mass[i]);
-						   };
-				   };  //デフォルトはイオン間のクーロン相互作用のみ。
+						};
+				   }; //デフォルトはイオン間のクーロン相互作用のみ。
 					break;
 			}
     return uhen;

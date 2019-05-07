@@ -1,6 +1,3 @@
-./vs/*
-./vscode
-./Debug
-*.tlog
-*.log
-*.exe
+.vs/*
+.vscode/*
+Debug
