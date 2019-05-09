@@ -32,7 +32,7 @@ using namespace std;
 
 //#define CONST 138.6 
 //時間の単位は ps 長さの単位は nm エネルギーの単位は amu nm^2/ps^2
-//CONST=6.02*10^23*e^2/(4pi*e0)        鈴木定数
+//CONST=6.02*10^23*e^2/(4pi*e0) 鈴木定数
 
 #define MAX_NUM 200 
 //最大粒子数
@@ -115,7 +115,8 @@ public:
 
 	long double force(int i,int j); //粒子間の力を計算。粒子 i の dv/dt の右辺を返す   j は座標ｘｙｚ
 	long double potential_energy(); //全ポテンシャルエネルギーを計算 [amu nm^2/ps^2]
-	long double kinetic_energy();   //全運動エネルギーを計算 [amu nm^2/ps^2]
+	long double kinetic_energy(); //水素を全運動エネルギーを計算 [amu nm^2/ps^2]
+	long double kinetic_energy_3body();   //全運動エネルギーを計算 [amu nm^2/ps^2]
 	long double PE_plus_KE();       //全エネルギー（PE+KE）を計算 [amu nm^2/ps^2]
 	void cal_momentum();    //ランダムに電荷分配する
 	void dist_charge();    //ランダムに電荷分配する
@@ -126,7 +127,6 @@ public:
 	int get_data(char *input_file);
 	void snap_output(long double snap_time);
 	void message();
-
 };
 
 
@@ -159,113 +159,106 @@ exit(0);
 }
 
 void denka::mk_out_dir(char *makingdirectory){
-
-char NewDir[32];
-int i;
-
-//実行ファイル名と同じ（拡張子除く）ディレクトリ名を作成　・・.exe 実行ファイル　パラメタファイル
-    i=0;
+	char NewDir[32];
+	int i;
+	//実行ファイル名と同じ（拡張子除く）ディレクトリ名を作成　・・.exe 実行ファイル　パラメタファイル
+    i = 0;
 	do {
 		NewDir[i]=makingdirectory[i];
         i=i+1;
-        if(i>31) {cout<<"Filename is too long. Be fewer 32 letters."<<endl;exit (1);}
-	} while(makingdirectory[i]!='.');
+        if(i>31) 
+		{cout<<"Filename is too long. Be fewer 32 letters."<<endl; exit(1);}
+	} 
+	while(makingdirectory[i]!='.');
     NewDir[i]=NULL;
 	cout<<"simulation result -> "<<NewDir<<endl;
     _mkdir(NewDir); //ディレクトリ作成完了
-
-
 }
 //出力ディレクトリ作成
 
 void denka::open_output_files(char *makingdirectory){
-char DirName[32];
-int i,j;
-
-    i=0;
+	char DirName[32];
+	int i, j;
+	i = 0;
 	do {
 		DirName[i]=makingdirectory[i];
         i=i+1;
         if(i>31) {cout<<"Filename is too long. Be fewer 32 letters."<<endl;exit (1);}
 	} while(makingdirectory[i]!='.');
     DirName[i]=NULL;
+	//シミュレーション条件の出力ファイルの作成
+	strcpy_s(InfoFile,DirName);
+	strcat_s(InfoFile,"\\Infomation.txt");
+	foutinformation.open(InfoFile);
+	cout << InfoFile << endl;
+	if(!foutinformation) {cout<<" cannot make Infomation FILE. \n";}
+	foutinformation<<"START TIME T0 "<<t0<<" ps"<<endl;
+	foutinformation<<"STOP TIME Tn "<<tn<<" ps"<<endl;
+	foutinformation<<"kizami n "<< n_step <<endl;
+	foutinformation<<"trial number "<<trial<<endl;
+	foutinformation<<"Number of simulated particles is "<<PN<<endl;
+	foutinformation<<"Number of charge is "<<CN<<endl;
+	foutinformation<<"Interaction : "<< pot_label <<endl;
+	foutinformation<<"Charge buld-up time [ps] : "<< t_charge_bu <<endl;
+	foutinformation<<"New directory name is "<<DirName<<endl;
+	foutinformation<<"N"<<DirName<<endl;
+	foutinformation<<endl;
+	foutinformation<<endl;
+	foutinformation<<endl;
 
 
-         //シミュレーション条件の出力ファイルの作成
-		   strcpy_s(InfoFile,DirName);
-		   strcat_s(InfoFile,"\\Infomation.txt");
-			foutinformation.open(InfoFile);
-				cout << InfoFile << endl;
-			if(!foutinformation) {cout<<" cannot make Infomation FILE. \n";}
-		  foutinformation<<"START TIME T0 "<<t0<<" ps"<<endl;
-	      foutinformation<<"STOP TIME Tn "<<tn<<" ps"<<endl;
-	      foutinformation<<"kizami n "<< n_step <<endl;
-		  foutinformation<<"trial number "<<trial<<endl;
-	      foutinformation<<"Number of simulated particles is "<<PN<<endl;
-		  foutinformation<<"Number of charge is "<<CN<<endl;
-		  foutinformation<<"Interaction : "<< pot_label <<endl;
-		  foutinformation<<"Charge buld-up time [ps] : "<< t_charge_bu <<endl;
-		  foutinformation<<"New directory name is "<<DirName<<endl;
-		  foutinformation<<"N"<<DirName<<endl;
-		  foutinformation<<endl;
-		  foutinformation<<endl;
-		  foutinformation<<endl;
+	//ファイルを開く、"label"P.dat (ion) labelN.dat (neutral)  などなど
 
+	if(MAX_LABEL<num_label){cout << "too much label! " <<endl; }
 
-			//ファイルを開く、"label"P.dat (ion) labelN.dat (neutral)  などなど
-
-			if(MAX_LABEL<num_label){cout << "too much label! " <<endl; }
-
-			for(i=0;i<num_label;i++){
-				strcpy_s(filename[2*i]  ,DirName);			// label i-th ion
-				strcpy_s(filename[2*i+1],DirName);			// label i-th neutral 
-				strcat_s(filename[2*i]  ,"\\");
-				strcat_s(filename[2*i+1],"\\");
-				strcat_s(filename[2*i]  ,valid_label[i].c_str());
-				strcat_s(filename[2*i+1],valid_label[i].c_str());
-				strcat_s(filename[2*i]  ,"_P.dat");
-				strcat_s(filename[2*i+1],"_N.dat");
-              //ファイル作成
-				outfile[2*i].open(  filename[2*i]);
+	for(i=0;i<num_label;i++){
+		strcpy_s(filename[2*i]  ,DirName);			// label i-th ion
+		strcpy_s(filename[2*i+1],DirName);			// label i-th neutral 
+		strcat_s(filename[2*i]  ,"\\");
+		strcat_s(filename[2*i+1],"\\");
+		strcat_s(filename[2*i]  ,valid_label[i].c_str());
+		strcat_s(filename[2*i+1],valid_label[i].c_str());
+		strcat_s(filename[2*i]  ,"_P.dat");
+		strcat_s(filename[2*i+1],"_N.dat");
+		//ファイル作成
+		outfile[2*i].open(  filename[2*i]);
 //				cout << filename[2*i] << endl;
-                if(!outfile[2*i]) {cout << "cannot make \n ";}
-				outfile[2*i+1].open(filename[2*i+1]);
+		if(!outfile[2*i]) {cout << "cannot make \n ";}
+		outfile[2*i+1].open(filename[2*i+1]);
 //				cout << filename[2*i+1] << endl;
-				if(!outfile[2*i+1]) {cout << "cannot make \n ";}
-				
-			}
+		if(!outfile[2*i+1]) {cout << "cannot make \n ";}
+		}
 
 
-			for(i=0;i<num_label;i++){
-			for(j=i;j<num_label;j++){
-				strcpy_s(filename_2body[i][j]  ,DirName);			// label i-th ion
-				strcat_s(filename_2body[i][j]  ,"\\");
-				strcat_s(filename_2body[i][j]  ,"2body_");
-				strcat_s(filename_2body[i][j]  ,valid_label[i].c_str());
-				strcat_s(filename_2body[i][j]  ,valid_label[j].c_str());
-				strcat_s(filename_2body[i][j]  ,".dat");
-              //ファイル作成
-				outfile_2body[i][j].open(  filename_2body[i][j]);
+	for(i=0;i<num_label;i++){
+	for(j=i;j<num_label;j++){
+		strcpy_s(filename_2body[i][j]  ,DirName);			// label i-th ion
+		strcat_s(filename_2body[i][j]  ,"\\");
+		strcat_s(filename_2body[i][j]  ,"2body_");
+		strcat_s(filename_2body[i][j]  ,valid_label[i].c_str());
+		strcat_s(filename_2body[i][j]  ,valid_label[j].c_str());
+		strcat_s(filename_2body[i][j]  ,".dat");
+		//ファイル作成
+		outfile_2body[i][j].open(  filename_2body[i][j]);
 //				cout << filename[2*i] << endl;
-                if(!outfile_2body[i][j]) {cout << "cannot make \n ";}
-			}
-			}
+		if(!outfile_2body[i][j]) {cout << "cannot make \n ";}
+	}
+	}
 
-			if(snap_num>0){
-				strcpy_s(SnapFile ,DirName);		
-				strcat_s(SnapFile,"\\Snapshot.dat");
-				fsnapshot.open(SnapFile);
-				cout << SnapFile << endl;
-				if(!fsnapshot) {cout<<" cannot make Infomation FILE. \n";}
-			}
+	if(snap_num>0){
+		strcpy_s(SnapFile ,DirName);		
+		strcat_s(SnapFile,"\\Snapshot.dat");
+		fsnapshot.open(SnapFile);
+		cout << SnapFile << endl;
+		if(!fsnapshot) {cout<<" cannot make Infomation FILE. \n";}
+	}
 }
 
 void denka::close_output_files(char *makingdirectory){
-int i;
-
-			for(i=0;i<num_label;i++){outfile[2*i].close();outfile[2*i+1].close();}
-			foutinformation.close();
-			if(snap_num>0){	fsnapshot.close();}
+	int i;
+	for(i=0;i<num_label;i++){outfile[2*i].close();outfile[2*i+1].close();}
+	foutinformation.close();
+	if(snap_num>0){	fsnapshot.close();}
 
 }
 
@@ -282,145 +275,149 @@ void denka::keisan(int n_th) {
 	long double exp_chg; 
 	int	file_num;
 
-          cout<<"you entered... "<<endl;
-	      cout<<"START TIME T0 "<<t0<<" ps"<<endl;
-	      cout<<"STOP TIME Tn "<<tn<<" ps"<<endl;
-	      cout<<"kizami n "<< n_step <<endl;
-		  cout<<"trial number "<< trial <<endl;
-	      cout<<"Number of simulated particles is "<<PN<<endl;
-	      cout<<"Number of total charge is "<<CN<<endl;
+	cout<<"you entered... "<<endl;
+	cout<<"START TIME T0 "<<t0<<" ps"<<endl;
+	cout<<"STOP TIME Tn "<<tn<<" ps"<<endl;
+	cout<<"kizami n "<< n_step <<endl;
+	cout<<"trial number "<< trial <<endl;
+	cout<<"Number of simulated particles is "<<PN<<endl;
+	cout<<"Number of total charge is "<<CN<<endl;
 
-			cal_momentum();
-			cout<<"initial total momentum of system : [amu nm/ps]"<<endl<<
-				"px="<<px<<" py="<<py<<" pz="<<pz<<endl;
+	cal_momentum();
+	cout<<"initial total momentum of system : [amu nm/ps]"<<endl<<
+		"px="<<px<<" py="<<py<<" pz="<<pz<<endl;
 
+	if(t_charge_bu==0){	
+		for(k=0;k<PN;k++){	
+			charge[k] = charge_dest[k];
+		} 
+	}
 
-//		  //初期の全エネルギー計算
-			cout<<"first potential energy  "<< (AMU*1e6/UNIT_E)*potential_energy() <<"  eV"<<endl;  //最後に [amu nm^2/ps^2] --> [eV]　へ変換
-			cout<<"first kinetic energy  "<< (AMU*1e6/UNIT_E)*kinetic_energy() <<"  eV"<<endl;  //最後に [amu nm^2/ps^2] --> [eV]　へ変換
-			firstenergy=PE_plus_KE();  ////単位は [amu nm^2/ps^2]
-			cout<<"first total energy  "<< (AMU*1e6/UNIT_E)*firstenergy<<"  eV"<<endl;  //最後に [amu nm^2/ps^2] --> [eV]　へ変換
+	//初期の全エネルギー計算		 
+    //Runge Kutta Gill で計算　n は時間の刻みの数。その数だけ for で計算		
+	if(t_charge_bu!=0){	
+		dt_temp = interval_t / t_charge_bu; 
+		charge_uracil = 0;
+		for(k=0;k<PN;k++){	
+			charge[k] = 0; 
+			charge_last[k] = 0;  
+			charge_next[k] = 0;
+		} 
+	}
 
-			 
-            //Runge Kutta Gill で計算　n は時間の刻みの数。その数だけ for で計算
+	cout << charge[1] << endl;
+	cout<<"first potential energy  "<< (AMU*1e6/UNIT_E)*potential_energy() <<"  eV"<<endl;  //最後に [amu nm^2/ps^2] --> [eV]　へ変換
+	cout<<"first kinetic energy  "<< (AMU*1e6/UNIT_E)*kinetic_energy() <<"  eV"<<endl;  //最後に [amu nm^2/ps^2] --> [eV]　へ変換
+	firstenergy=PE_plus_KE();  ////単位は [amu nm^2/ps^2]
+	cout<<"first total energy  "<< (AMU*1e6/UNIT_E)*firstenergy<<"  eV"<<endl;  //最後に [amu nm^2/ps^2] --> [eV]　へ変換
 
-			if(t_charge_bu!=0){	
-				dt_temp = interval_t / t_charge_bu; 
-				charge_uracil = 0;
+	for(i=0;i<=n_step;i++) {
+		t=t0+i*interval_t;
+		if(t_charge_bu!=0){		
+			exp_chg=(1- exp(-1 * t / t_charge_bu));
+			if(t_CT==0){
 				for(k=0;k<PN;k++){	
-					charge[k] = 0; 
-					charge_last[k] = 0;  
-					charge_next[k] = 0;
-				} 
-			}
-
-			for(i=0;i<=n_step;i++) {
-				t=t0+i*interval_t;
-
-			if(t_charge_bu!=0){		
-				exp_chg=(1- exp(-1 * t / t_charge_bu));
-				if(t_CT==0){
-					for(k=0;k<PN;k++){	charge[k] = charge_dest[k] * exp_chg;	} //解析式で、charge build-up のみ。 動作OK
+					charge[k] = charge_dest[k] * exp_chg;
+					} //解析式で、charge build-up のみ。 動作OK
 //					for(k=0;k<PN;k++){	
 //						charge_next[k] = charge[k] + (dt_temp - pow(dt_temp, 2)/2 + pow(dt_temp, 3) / 6 - pow(dt_temp, 4) / 24) * (charge_dest[k] - charge[k]) ; // Taylor 4th, OK
 //					} //差分式で、charge build-up のみ。 動作OK
+			}
+			else{
+			for(k=0;k<PN;k++){
+				if((CT_flag[k] * t_CT) == 0){
+					charge_next[k] = charge_dest[k];
 				}else{
-					for(k=0;k<PN;k++){
-						if((CT_flag[k] * t_CT) == 0){
-							charge_next[k] = charge_dest[k];
-						}else{
-							if(CT_para == 1){
-								if(k != CT_center){charge_next[k] = charge[k] + charge[CT_center] * interval_t * charge[CT_center] / (CT_flag[k] * t_CT) ;}
-								if(charge_next[k] > charge_dest[k]){ charge_next[k] = charge_dest[k];} 
-							}else{
-								charge_uracil = charge_uracil + charge[CT_center] * interval_t / t_CT ;
-								if(charge_uracil > (CN - charge_dest[CT_center])){ charge_uracil = CN - charge_dest[CT_center];} 
-								for(k=0;k<PN;k++){
-									if(k != CT_center){charge_next[k] = charge_uracil * charge_dest[k] / (CN - charge_dest[CT_center]); }
-								}
-							}
-						};
-					} //電荷移動に応じてそれぞれの原子で計算 
-				charge_next[CT_center]= exp_chg * CN;
-				for(k=0;k<PN;k++){
-						if(k != CT_center){charge_next[CT_center] = charge_next[CT_center] - charge_next[k]; }
-					}				
-				}
-
-			}
-			
-						rkg();
-						if( (snap_num!=0) && (i%snap_num==0) ){snap_output(t);}
-
-			if(t_charge_bu!=0){		for(k=0;k<PN;k++){	charge[k] = charge_next[k];} }
-
-			//エネルギー計算
-   				for(k=0;k<PN;k++)  {
-						ev[k]=0.5*(AMU*1e6/UNIT_E)*mass[k]*(velocity[k][0]*velocity[k][0] + velocity[k][1]*velocity[k][1]+velocity[k][2]*velocity[k][2]);
-			  	};    // エネルギー単位 [amu nm^2/ps^2] --> [eV]　へ変換
-			}
-
-			if( (snap_num!=0) && (n_step%snap_num!=0) ){snap_output(t);} //最後のstepでにsanpshotを出力する。
-
-
-			cal_momentum();
-			cout<<"total momentum / [amu nm/ps]"<<endl<<
-				"px="<<px<<" py="<<py<<" pz="<<pz<<endl;
-
-//		  //初期の全エネルギー計算
-			cout<<"final potential energy  "<< (AMU*1e6/UNIT_E)*potential_energy() <<"  eV"<<endl;  //最後に [amu nm^2/ps^2] --> [eV]　へ変換
-			cout<<"final kinetic energy  "<< (AMU*1e6/UNIT_E)*kinetic_energy() <<"  eV"<<endl;  //最後に [amu nm^2/ps^2] --> [eV]　へ変換
-			finalenergy=PE_plus_KE();  ////単位は [amu nm^2/ps^2]
-			cout<<"final total energy  "<< (AMU*1e6/UNIT_E)*finalenergy<<"  eV"<<endl;  //最後に [amu nm^2/ps^2] --> [eV]　へ変換
-
-			if(refenergy<(fabs((finalenergy-firstenergy)/finalenergy))) {
-				refenergy = (fabs((finalenergy-firstenergy)/finalenergy));}
-
-			if(refmomentum<fabs(kyori(px,firstP[0],py,firstP[1],pz,firstP[2])/minmomentum))  //大きい方をrefmomentumに採用
-			{refmomentum=fabs(kyori(px,firstP[0],py,firstP[1],pz,firstP[2])/minmomentum);}
-       
-           
-		   cout<<" seido (first total momentum-final total momentum)/(minmomentum) "<<refmomentum<<endl;
-		   cout<<" seido max(first-final/final)energy = "<<refenergy<<endl;
-        
-
-           foutinformation<<endl;
-		   foutinformation<<"momentum seido "<<refmomentum<<endl;
-		   foutinformation<<"energy seido   "<<refenergy<<endl;
-
-
-
-		   //labelに従って結果をファイルに出力する
-			for(i=0;i<PN;i++)  {
-               if(charge_dest[i]==0) {
-				   for(j=0;j<num_label;j++){if(label[i]==valid_label[j]){file_num=2*j+1;};}
-//						cout << charge_dest[i] << " " << label[i] << " " << filename[file_num] << endl;
-			   }
-               if(charge_dest[i]>0) {
-				   for(j=0;j<num_label;j++){if(label[i]==valid_label[j]){file_num=2*j;};}
-//						cout << charge_dest[i] << " " << label[i] << " " << filename[file_num] << endl;
-			   }
-			outfile[file_num] <<n_th<< " " << charge_dest[i]<< " " << ev[i]<< " " << momentum[i][0] << " " << momentum[i][1] << " " << momentum[i][2]<< " "<< "0"<< endl;
-			foutinformation  <<n_th<< " "  <<label[i]<< " " << charge_dest[i]<< " " << ev[i]<< " " << momentum[i][0] << " " << momentum[i][1] << " " << momentum[i][2]<< " "<< "0"<< endl;
-
-
-				if(charge_dest[i]>0) {
-					for(j=i+1;j<PN;j++){
-						if(charge_dest[j]>0) {
-							for(k=0;k<num_label;k++){
-								if(label[i]==valid_label[k]){suffix_1=k;};
-								if(label[j]==valid_label[k]){suffix_2=k;};
-							}
-							if(suffix_1>suffix_2){temp_i= suffix_1; suffix_1=suffix_2; suffix_2=temp_i; }
-							Vx1= momentum[i][0]; Vy1= momentum[i][1]; Vz1= momentum[i][2]; 
-							Vx2= momentum[j][0]; Vy2= momentum[j][1]; Vz2= momentum[j][2]; 
-							InnerProduct = (Vx1*Vx2 + Vy1*Vy2 + Vz1*Vz2)/sqrt((Vx1*Vx1 + Vy1*Vy1 + Vz1*Vz1)*(Vx2*Vx2 + Vy2*Vy2 + Vz2*Vz2));
-							outfile_2body[suffix_1][suffix_2]  <<n_th<< " "  << label[i]  << " "  << charge_dest[i]  << " "  << label[j]  << " "  << charge_dest[j]  << " "  << InnerProduct  << " "  << ev[i]  << " " << ev[j]  << " " << endl;
+					if(CT_para == 1){
+						if(k != CT_center){charge_next[k] = charge[k] + charge[CT_center] * interval_t * charge[CT_center] / (CT_flag[k] * t_CT) ;}
+						if(charge_next[k] > charge_dest[k]){ charge_next[k] = charge_dest[k];} 
+					}else{
+						charge_uracil = charge_uracil + charge[CT_center] * interval_t / t_CT ;
+						if(charge_uracil > (CN - charge_dest[CT_center])){ charge_uracil = CN - charge_dest[CT_center];} 
+						for(k=0;k<PN;k++){
+							if(k != CT_center){charge_next[k] = charge_uracil * charge_dest[k] / (CN - charge_dest[CT_center]); }
 						}
 					}
-				}
+				};
+			} //電荷移動に応じてそれぞれの原子で計算 
+		charge_next[CT_center]= exp_chg * CN;
+		for(k=0;k<PN;k++){
+				if(k != CT_center){charge_next[CT_center] = charge_next[CT_center] - charge_next[k]; }
+			}				
+		}
 
+	}
+	
+	rkg();
+	if( (snap_num!=0) && (i%snap_num==0) ){snap_output(t);}
+	if(t_charge_bu!=0){		for(k=0;k<PN;k++){	charge[k] = charge_next[k];} }
+	//エネルギー計算
+		for(k=0;k<PN;k++)  {
+				ev[k]=0.5*(AMU*1e6/UNIT_E)*mass[k]*(velocity[k][0]*velocity[k][0] + velocity[k][1]*velocity[k][1]+velocity[k][2]*velocity[k][2]);
+		};    // エネルギー単位 [amu nm^2/ps^2] --> [eV]　へ変換
+	}
+
+	if( (snap_num!=0) && (n_step%snap_num!=0) ){snap_output(t);} //最後のstepでにsanpshotを出力する。
+
+
+	cal_momentum();
+	cout<<"total momentum / [amu nm/ps]"<<endl<<
+		"px="<<px<<" py="<<py<<" pz="<<pz<<endl;
+
+//		  //初期の全エネルギー計算
+			
+	cout<<"final potential energy  "<< (AMU*1e6/UNIT_E)*potential_energy() <<"  eV"<<endl;  //最後に [amu nm^2/ps^2] --> [eV]　へ変換
+	cout<<"final kinetic energy  "<< (AMU*1e6/UNIT_E)*kinetic_energy() <<"  eV"<<endl;
+	cout<<"final kinetic energy 3body "<< (AMU*1e6/UNIT_E)*kinetic_energy_3body() <<"  eV"<<endl; 
+	finalenergy=PE_plus_KE();  ////単位は [amu nm^2/ps^2]
+	cout<<"final total energy  "<< (AMU*1e6/UNIT_E)*finalenergy<<"  eV"<<endl;  //最後に [amu nm^2/ps^2] --> [eV]　へ変換
+
+	if(refenergy<(fabs((finalenergy-firstenergy)/finalenergy))) {
+		refenergy = (fabs((finalenergy-firstenergy)/finalenergy));}
+
+	if(refmomentum<fabs(kyori(px,firstP[0],py,firstP[1],pz,firstP[2])/minmomentum))  //大きい方をrefmomentumに採用
+	{refmomentum=fabs(kyori(px,firstP[0],py,firstP[1],pz,firstP[2])/minmomentum);}
+
+	
+	cout<<" seido (first total momentum-final total momentum)/(minmomentum) "<<refmomentum<<endl;
+	cout<<" seido max(first-final/final)energy = "<<refenergy<<endl;
+
+
+	foutinformation<<endl;
+	foutinformation<<"momentum seido "<<refmomentum<<endl;
+	foutinformation<<"energy seido   "<<refenergy<<endl;
+
+		   //labelに従って結果をファイルに出力する
+	for(i=0;i<PN;i++)  {
+		if(charge_dest[i]==0) {
+			for(j=0;j<num_label;j++){if(label[i]==valid_label[j]){file_num=2*j+1;};}
+//						cout << charge_dest[i] << " " << label[i] << " " << filename[file_num] << endl;
+		}
+		if(charge_dest[i]>0) {
+			for(j=0;j<num_label;j++){if(label[i]==valid_label[j]){file_num=2*j;};}
+//						cout << charge_dest[i] << " " << label[i] << " " << filename[file_num] << endl;
+		}
+	outfile[file_num] <<n_th<< " " << charge_dest[i]<< " " << ev[i]<< " " << momentum[i][0] << " " << momentum[i][1] << " " << momentum[i][2]<< " "<< "0"<< endl;
+	foutinformation  <<n_th<< " "  <<label[i]<< " " << charge_dest[i]<< " " << ev[i]<< " " << momentum[i][0] << " " << momentum[i][1] << " " << momentum[i][2]<< " "<< "0"<< endl;
+
+
+		if(charge_dest[i]>0) {
+			for(j=i+1;j<PN;j++){
+				if(charge_dest[j]>0) {
+					for(k=0;k<num_label;k++){
+						if(label[i]==valid_label[k]){suffix_1=k;};
+						if(label[j]==valid_label[k]){suffix_2=k;};
+					}
+					if(suffix_1>suffix_2){temp_i= suffix_1; suffix_1=suffix_2; suffix_2=temp_i; }
+					Vx1= momentum[i][0]; Vy1= momentum[i][1]; Vz1= momentum[i][2]; 
+					Vx2= momentum[j][0]; Vy2= momentum[j][1]; Vz2= momentum[j][2]; 
+					InnerProduct = (Vx1*Vx2 + Vy1*Vy2 + Vz1*Vz2)/sqrt((Vx1*Vx1 + Vy1*Vy1 + Vz1*Vz1)*(Vx2*Vx2 + Vy2*Vy2 + Vz2*Vz2));
+					outfile_2body[suffix_1][suffix_2]  <<n_th<< " "  << label[i]  << " "  << charge_dest[i]  << " "  << label[j]  << " "  << charge_dest[j]  << " "  << InnerProduct  << " "  << ev[i]  << " " << ev[j]  << " " << endl;
+				}
 			}
+		}
+
+	}
 
 			
 
@@ -428,31 +425,31 @@ void denka::keisan(int n_th) {
 
 //運動量計算
 void denka::cal_momentum(){
-int i,j;
-
-//運動量を求める
-for(i=0;i<PN;i++) {for(j=0;j<=2;j++)  { momentum[i][j]=mass[i]*velocity[i][j];};}
-
-px=0;	py=0;	pz=0;
-
+	int i,j;
+	//運動量を求める
+	for(i=0;i<PN;i++) {for(j=0;j<=2;j++)  { momentum[i][j]=mass[i]*velocity[i][j];};}
+	px=0;	py=0;	pz=0;
 //全運動量の和
-	for(i=0;i<PN;i++) {
-		px=px+momentum[i][0];        py=py+momentum[i][1];		pz=pz+momentum[i][2];
+	for(i=0;i<PN;i++){
+		px=px+momentum[i][0];        
+		py=py+momentum[i][1];		
+		pz=pz+momentum[i][2];
 		//運動量精度評価　運動量ベクトルの絶対値で評価する 先ず最も小さいイオンの運動量ベクトルを探す
-		if(i==0) {minmomentum=kyori(momentum[i][0],0,momentum[i][1],0,momentum[i][2],0);
-		}else  if(i) {
+		if(i==0){minmomentum=kyori(momentum[i][0],0,momentum[i][1],0,momentum[i][2],0);}
+		else if(i){
 			if(minmomentum>kyori(momentum[i][0],0,momentum[i][1],0,momentum[i][2],0))   
-			  {minmomentum=kyori(momentum[i][0],0,momentum[i][1],0,momentum[i][2],0);}
-		}
-		}
+			{
+				minmomentum=kyori(momentum[i][0],0,momentum[i][1],0,momentum[i][2],0);
+				}
+				}
+	}
 }			//全運動量の和終了
 
 
 void denka::snap_output(long double snap_time){
 	int i;
-
 	fsnapshot << " simlation time : " << snap_time << " [ps]" << endl;
-//	fsnapshot << " t_CBU, T_CT : " << t_charge_bu << " [ps]" << t_CT << " [ps]" << endl;
+	//fsnapshot << " t_CBU, T_CT : " << t_charge_bu << " [ps]" << t_CT << " [ps]" << endl;
 	for(i=0;i<PN;i++){
 		fsnapshot	<< label[i] << "     "  << mass[i]  
 					<< "     "  << position[i][0] << "     "  << position[i][1] << "     "  << position[i][2]
@@ -460,172 +457,158 @@ void denka::snap_output(long double snap_time){
 					<< "     "  << charge_dest[i] << "     "  << charge[i] << endl;
 	};
 	fsnapshot	<< endl;  
-
 }
 
-long double denka::kyori(long double a1,long double b1,long double a2,long double b2,long double a3,long double b3)  {
-return sqrt((a1-b1)*(a1-b1)+(a2-b2)*(a2-b2)+(a3-b3)*(a3-b3));
+long double denka::kyori(long double a1,long double b1,
+						long double a2,long double b2,
+						long double a3,long double b3)
+{
+	return sqrt((a1-b1)*(a1-b1)+(a2-b2)*(a2-b2)+(a3-b3)*(a3-b3));
 }
 
 
 
 //２点間の距離を計算
-
 void denka::rkg()
-      
-      {
-       static long double p1=0.2928932188134524, p2=1.707106781186547;   //  p1 = 1 - sqrt(1/2),  p2 = 1 + sqrt(1/2) 
-	   long double ck0[MAX_NUM][3][2];
-	   long double q1[MAX_NUM][3][2];
-	   long double r1[MAX_NUM][3][2];
-	   long double y1[MAX_NUM][3][2];
-       int i,j,k;
-   
-	   for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {ck0[i][j][k]=0; q1[i][j][k]=0;  r1[i][j][k]=0;y1[i][j][k]=0;};};}
+    {
+	static long double p1=0.2928932188134524, p2=1.707106781186547;   //  p1 = 1 - sqrt(1/2),  p2 = 1 + sqrt(1/2) 
+	long double ck0[MAX_NUM][3][2];
+	long double q1[MAX_NUM][3][2];
+	long double r1[MAX_NUM][3][2];
+	long double y1[MAX_NUM][3][2];
+	int i,j,k;
 
-      
-	    //i 粒子を表す j 座標を表す
-	   // ４ステップの計算開始
-	   //  step 1
-	   for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {ck0[i][j][k]=force(i,j)*interval_t/2;}
-	   else    {ck0[i][j][k]=velocity[i][j]*interval_t/2;}
-	   ;};}  ;}
-        
-       for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {y1[i][j][k]=velocity[i][j]+ck0[i][j][k]-q[i][j][k];}
-	   else    {y1[i][j][k]=position[i][j]+ck0[i][j][k]-q[i][j][k];}
-					  };};}
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{ck0[i][j][k]=0; q1[i][j][k]=0;  r1[i][j][k]=0;y1[i][j][k]=0;};};}
 
-
-       for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {r1[i][j][k]=y1[i][j][k]-velocity[i][j];}
-	   else    {r1[i][j][k]=y1[i][j][k]-position[i][j];}
-					  };};}
-
-	  
-	   for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {q[i][j][k]=q[i][j][k]+r1[i][j][k]*3-ck0[i][j][k];
-	   };};}
-
-       for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {velocity[i][j]=y1[i][j][k];}
-	   else    {position[i][j]=y1[i][j][k];}
-					  };};}
-       
+	
+	//i 粒子を表す j 座標を表す
+	// ４ステップの計算開始
+	//  step 1
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {ck0[i][j][k]=force(i,j)*interval_t/2;}
+	else    {ck0[i][j][k]=velocity[i][j]*interval_t/2;}
+	;};}  ;}
+	
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {y1[i][j][k]=velocity[i][j]+ck0[i][j][k]-q[i][j][k];}
+	else    {y1[i][j][k]=position[i][j]+ck0[i][j][k]-q[i][j][k];}
+					};};}
 
 
-       //  step 2
-//       xx=t+interval_t*0.5;
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {r1[i][j][k]=y1[i][j][k]-velocity[i][j];}
+	else    {r1[i][j][k]=y1[i][j][k]-position[i][j];}
+					};};}
 
-       for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {ck0[i][j][k]=force(i,j)*interval_t;}
-	   else    {ck0[i][j][k]=velocity[i][j]*interval_t;}
-	   };};}
+	
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{q[i][j][k]=q[i][j][k]+r1[i][j][k]*3-ck0[i][j][k];
+	};};}
 
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {velocity[i][j]=y1[i][j][k];}
+	else    {position[i][j]=y1[i][j][k];}
+					};};}
+	
+	//  step 2
+	//       xx=t+interval_t*0.5;
 
-        for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {y1[i][j][k]=velocity[i][j]+p1*(ck0[i][j][k]-q[i][j][k]);}
-	   else    {y1[i][j][k]=position[i][j]+p1*(ck0[i][j][k]-q[i][j][k]);}
-					  };};}
-
-
-       for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {r1[i][j][k]=y1[i][j][k]-velocity[i][j];}
-	   else    {r1[i][j][k]=y1[i][j][k]-position[i][j];}
-					  };};}
-
-      
-	    for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {q[i][j][k]=q[i][j][k]+r1[i][j][k]*3-ck0[i][j][k]*p1;
-	   };};}
-      
-	   
-	   for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {velocity[i][j]=y1[i][j][k];}
-	   else    {position[i][j]=y1[i][j][k];}
-					  };};}
-    
-	  
-
-       //  step 3
-       for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {ck0[i][j][k]=force(i,j)*interval_t;}
-	   else    {ck0[i][j][k]=velocity[i][j]*interval_t;}
-	   };};}       
-
-        for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {y1[i][j][k]=velocity[i][j]+p2*(ck0[i][j][k]-q[i][j][k]);}
-	   else    {y1[i][j][k]=position[i][j]+p2*(ck0[i][j][k]-q[i][j][k]);}
-					  };};}
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {ck0[i][j][k]=force(i,j)*interval_t;}
+	else    {ck0[i][j][k]=velocity[i][j]*interval_t;}
+	};};}
 
 
-       
-	   for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {r1[i][j][k]=y1[i][j][k]-velocity[i][j];}
-	   else    {r1[i][j][k]=y1[i][j][k]-position[i][j];}
-					  };};}
-
-       
-        for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {q[i][j][k]=q[i][j][k]+r1[i][j][k]*3-ck0[i][j][k]*p2;
-	   };};}
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {y1[i][j][k]=velocity[i][j]+p1*(ck0[i][j][k]-q[i][j][k]);}
+	else    {y1[i][j][k]=position[i][j]+p1*(ck0[i][j][k]-q[i][j][k]);}
+					};};}
 
 
-	   for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {velocity[i][j]=y1[i][j][k];}
-	   else    {position[i][j]=y1[i][j][k];}
-					  };};}
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {r1[i][j][k]=y1[i][j][k]-velocity[i][j];}
+	else    {r1[i][j][k]=y1[i][j][k]-position[i][j];}
+					};};}
 
-	  
-       
-       //  step 4
-//     xx=t+interval_t/2;
-      
-       for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {ck0[i][j][k]=force(i,j)*interval_t/2;}
-	   else    {ck0[i][j][k]=velocity[i][j]*interval_t/2;}
-	   };};}       
-    
-
-       for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
-	   {if(k)  {y1[i][j][k]=velocity[i][j]+(ck0[i][j][k]-q[i][j][k])/3;}
-	   else    {y1[i][j][k]=position[i][j]+(ck0[i][j][k]-q[i][j][k])/3;}
-	   };};}      
+	
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{q[i][j][k]=q[i][j][k]+r1[i][j][k]*3-ck0[i][j][k]*p1;
+	};};}
+	
+	
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {velocity[i][j]=y1[i][j][k];}
+	else    {position[i][j]=y1[i][j][k];}
+					};};}
 
 
-       for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++)
-	   {if(k)  {r1[i][j][k]=y1[i][j][k]-velocity[i][j];}
-	   else    {r1[i][j][k]=y1[i][j][k]-position[i][j];};};};}
+	//  step 3
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {ck0[i][j][k]=force(i,j)*interval_t;}
+	else    {ck0[i][j][k]=velocity[i][j]*interval_t;}
+	};};}       
+
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {y1[i][j][k]=velocity[i][j]+p2*(ck0[i][j][k]-q[i][j][k]);}
+	else    {y1[i][j][k]=position[i][j]+p2*(ck0[i][j][k]-q[i][j][k]);}
+					};};}
 
 
-       for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++)
-	   {q[i][j][k]=q[i][j][k]+r1[i][j][k]*3-ck0[i][j][k];};};}
-	   
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {r1[i][j][k]=y1[i][j][k]-velocity[i][j];}
+	else    {r1[i][j][k]=y1[i][j][k]-position[i][j];}
+					};};}
 
-       for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++)
-	   {if(k)  {velocity[i][j]=y1[i][j][k];}
-	   else    {position[i][j]=y1[i][j][k];};};};}
-
-          
-    
- 	  }
+	
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{q[i][j][k]=q[i][j][k]+r1[i][j][k]*3-ck0[i][j][k]*p2;
+	};};}
 
 
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {velocity[i][j]=y1[i][j][k];}
+	else    {position[i][j]=y1[i][j][k];}
+					};};}
+
+	//  step 4
+	//     xx=t+interval_t/2;
+	
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {ck0[i][j][k]=force(i,j)*interval_t/2;}
+	else    {ck0[i][j][k]=velocity[i][j]*interval_t/2;}
+	};};}       
+
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++) 
+	{if(k)  {y1[i][j][k]=velocity[i][j]+(ck0[i][j][k]-q[i][j][k])/3;}
+	else    {y1[i][j][k]=position[i][j]+(ck0[i][j][k]-q[i][j][k])/3;}
+	};};}      
+
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++)
+	{if(k)  {r1[i][j][k]=y1[i][j][k]-velocity[i][j];}
+	else    {r1[i][j][k]=y1[i][j][k]-position[i][j];};};};}
+
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++)
+	{q[i][j][k]=q[i][j][k]+r1[i][j][k]*3-ck0[i][j][k];};};}
+
+	for(i=0;i<=PN-1;i++) {for(j=0;j<=2;j++) {for(k=0;k<=1;k++)
+	{if(k)  {velocity[i][j]=y1[i][j][k];}
+	else    {position[i][j]=y1[i][j][k];};};};}
+}
 
 //Runge Kutta Gill calculation
+
 int denka::dice(int faces) { 	return (1 + rand()%faces);}  
 // n-face dice  返り値1～n
 
 void denka::dist_charge() {
 int i,num,max_charge,fixed_charge;         
 
-     srand( (unsigned)time(NULL) );
-
+	srand( (unsigned)time(NULL) );
 	max_charge=0; fixed_charge=0;
 	for(i=0;i<PN;i++){max_charge=max_charge+Q_limit[i];
 			fixed_charge=fixed_charge+charge_dest[i];
+			cout << max_charge << endl;
 		}
 
 	if(CN > max_charge){ cout << " charge number mismatch" << endl; exit(0);}
@@ -637,9 +620,6 @@ int i,num,max_charge,fixed_charge;
 		}						//  電荷(CN)をランダム分配。
 
 }
-
-
-	  
 
 //力の計算   粒子 i の dv/dt の右辺を返す   j は座標ｘｙｚ  ここのエネルギー単位は [amu nm^2/ps^2]　力は [amu nm/ps^2]
 long double denka::force(int i ,int j)
@@ -714,6 +694,18 @@ switch(pot_flag){
 	case 'C'	: 
 		for(i=0;i<PN;i++) {
 			for(j=i+1;j<PN;j++){
+				// for debug
+				/*
+				cout << charge[i] << endl;
+				cout << charge[j] << endl;
+				cout << nagasa << endl;
+				cout << position[i][0] << endl;
+				cout << position[i][1] << endl;
+				cout << position[i][2] << endl;
+				cout << position[j][0] << endl;
+				cout << position[j][1] << endl;
+				cout << position[j][2] << endl;
+				*/
 				nagasa=kyori(position[i][0],position[j][0],position[i][1],position[j][1],position[i][2],position[j][2]);
 				t_energy=t_energy+(UNIT_E*UNIT_E/(4*PI*E_0*AMU)*1e3)*charge[i]*charge[j]/nagasa;
 			};	
@@ -757,126 +749,128 @@ switch(pot_flag){
 }
 return t_energy;
 } //全粒子のpotentialエネルギーを計算
+
 					
 //全運動エネルギー計算
 long double denka::kinetic_energy(){
-int i;
-long double t_energy=0;
+	int i;
+	long double t_energy=0;
 
-for(i=0;i<PN;i++) {	t_energy=t_energy+0.5*mass[i]*(velocity[i][0]*velocity[i][0]+velocity[i][1]*velocity[i][1] + velocity[i][2]*velocity[i][2]);}
-return t_energy;
+	for(i=0;i<PN;i++) {	t_energy=t_energy+0.5*mass[i]*(velocity[i][0]*velocity[i][0]+velocity[i][1]*velocity[i][1] + velocity[i][2]*velocity[i][2]);}
+	return t_energy;
 } //全粒子の運動エネルギーを計算
+
+long double denka::kinetic_energy_3body(){
+	int i;
+	long double t_energy=0;
+
+	for(i=0;i<PN;i++){
+		if(label[i]!="H"){
+			t_energy=t_energy+0.5*mass[i]*(velocity[i][0]*velocity[i][0]+velocity[i][1]*velocity[i][1] + velocity[i][2]*velocity[i][2]);
+			}
+		}
+	return t_energy;
+} //水素を除いた全粒子の運動エネルギーを計算
 
 
 int denka::get_data(char *input_file){
 
-  char buf[512];
-  int  i,j,k,LINE_NUM,flag;
+	char buf[512];
+	int  i,j,k,LINE_NUM,flag;
 
- ifstream fin(input_file);
+	ifstream fin(input_file);
 
- if(!fin) {cout << "cannot open \n ";
-          return 1;}
+	if(!fin) {cout << "cannot open \n ";
+			return 1;}
 
 
- LINE_NUM=0;
+	LINE_NUM=0;
 
-    while( fin.getline( buf, sizeof(buf) )){
-		LINE_NUM=LINE_NUM+1;
-//		cout << buf << endl;
-		istringstream is( buf );
-		if(LINE_NUM==1){ is >> t0 >> tn >> n_step>> snap_num ;}
-		if(LINE_NUM==2){ is >> PN >> CN >> pot_flag >> t_charge_bu >> t_CT >> CT_para;}
-		if(LINE_NUM==3){ is >> trial ;}
-		if(LINE_NUM >3){ is >> label[LINE_NUM-4] >> mass[LINE_NUM-4] 
-		                    >> position[LINE_NUM-4][0] >> position[LINE_NUM-4][1] >> position[LINE_NUM-4][2] 
-							>> velocity[LINE_NUM-4][0] >> velocity[LINE_NUM-4][1] >> velocity[LINE_NUM-4][2] 
-							>> charge_dest[LINE_NUM-4] >> Q_limit[LINE_NUM-4] >> CT_flag[LINE_NUM-4] ;
+		while( fin.getline( buf, sizeof(buf) )){
+			LINE_NUM=LINE_NUM+1;
+	//		cout << buf << endl;
+			istringstream is( buf );
+			if(LINE_NUM==1){ is >> t0 >> tn >> n_step>> snap_num ;}
+			if(LINE_NUM==2){ is >> PN >> CN >> pot_flag >> t_charge_bu >> t_CT >> CT_para;}
+			if(LINE_NUM==3){ is >> trial ;}
+			if(LINE_NUM >3){ is >> label[LINE_NUM-4] >> mass[LINE_NUM-4] 
+								>> position[LINE_NUM-4][0] >> position[LINE_NUM-4][1] >> position[LINE_NUM-4][2] 
+								>> velocity[LINE_NUM-4][0] >> velocity[LINE_NUM-4][1] >> velocity[LINE_NUM-4][2] 
+								>> charge_dest[LINE_NUM-4] >> Q_limit[LINE_NUM-4] >> CT_flag[LINE_NUM-4] ;
+			}
 		}
-	}
-fin.close();
+		fin.close();
 
-interval_t=(tn-t0)/n_step;	
-CT_center=0;
-for(k=0;k<PN;k++){if(CT_flag[k]==0){ CT_center=k;}} // 電荷移動の中心原子を捜す。入力ファイルで、CT_flag=0となる最後の原子が中心。
+	interval_t=(tn-t0)/n_step;	
+	CT_center=0;
+	for(k=0;k<PN;k++){if(CT_flag[k]==0){ CT_center=k;}} // 電荷移動の中心原子を捜す。入力ファイルで、CT_flag=0となる最後の原子が中心。
 
-switch(pot_flag){
-	case 'C'	: strcpy_s(pot_label, "Coulomb");	break;
-	case 'L'	: strcpy_s(pot_label, "LJ");	break;
-	case 'M'	: strcpy_s(pot_label, "C+LJ");	break;
-	case 'N'	: strcpy_s(pot_label, "C+LJ+ID");	break;
-	default		: strcpy_s(pot_label, "Coulomb");	break;
-}
-
-for(j=0;j<3;j++) {for(i=0;i<PN;i++) {momentum[i][j]=0;} ;}//初期化
-for(i=0;i<PN;i++) {for(j=0;j<3;j++)  {for(k=0;k<2;k++) {q[i][j][k]=0;};};}   //丸めの誤差初期化
-
-valid_label[0] = label[0];
-num_label=1;
-for(i=1;i<PN;i++){
-	flag=0;
-	for(j=0;j<num_label;j++){ if(label[i] == valid_label[j]){ flag=1;} ;}
-	if(flag==0){valid_label[num_label] = label[i]; num_label=num_label+1 ;}
-}			//  labelの数と、重複しないラベルをチェック
-
-cout << LINE_NUM-3 << " particle's data. " << PN << " particles are valid." << endl;
-
-
-num_random_atom=0;
-num_fixed_atom=0;
-for(i=0;i<PN;i++){
-	if(charge_dest[i]==-1){random_charge[num_random_atom]=i;num_random_atom=num_random_atom+1;};
-	if(charge_dest[i]!=-1){num_fixed_atom=num_fixed_atom+1;};
+	switch(pot_flag){
+		case 'C'	: strcpy_s(pot_label, "Coulomb");	break;
+		case 'L'	: strcpy_s(pot_label, "LJ");	break;
+		case 'M'	: strcpy_s(pot_label, "C+LJ");	break;
+		case 'N'	: strcpy_s(pot_label, "C+LJ+ID");	break;
+		default		: strcpy_s(pot_label, "Coulomb");	break;
 	}
 
-//cout << num_random_atom << " 粒子に電荷を分配する。 " << endl;
-//cout << num_fixed_atom << " 粒子は電荷が確定。 " << endl;
-//cout << CN << " 電荷数。 " << endl;
+	for(j=0;j<3;j++) {for(i=0;i<PN;i++) {momentum[i][j]=0;} ;}//初期化
+	for(i=0;i<PN;i++) {for(j=0;j<3;j++)  {for(k=0;k<2;k++) {q[i][j][k]=0;};};}   //丸めの誤差初期化
 
-//for(i=0;i<num_label;i++){ 	cout << label[i] << " " << valid_label[i] << endl;}
-//cout << num_label << " label数。 " << endl;
+	valid_label[0] = label[0];
+	num_label=1;
+	for(i=1;i<PN;i++){
+		flag=0;
+		for(j=0;j<num_label;j++){ if(label[i] == valid_label[j]){ flag=1;} ;}
+		if(flag==0){valid_label[num_label] = label[i]; num_label=num_label+1 ;}
+	}			//  labelの数と、重複しないラベルをチェック
+
+	cout << LINE_NUM-3 << " particle's data. " << PN << " particles are valid." << endl;
 
 
-return 0;
+	num_random_atom=0;
+	num_fixed_atom=0;
+	for(i=0;i<PN;i++){
+		if(charge_dest[i]==-1){random_charge[num_random_atom]=i;num_random_atom=num_random_atom+1;};
+		if(charge_dest[i]!=-1){num_fixed_atom=num_fixed_atom+1;};
+		}
+
+	//cout << num_random_atom << " 粒子に電荷を分配する。 " << endl;
+	//cout << num_fixed_atom << " 粒子は電荷が確定。 " << endl;
+	//cout << CN << " 電荷数。 " << endl;
+	//for(i=0;i<num_label;i++){ 	cout << label[i] << " " << valid_label[i] << endl;}
+	//cout << num_label << " label数。 " << endl;
+	return 0;
 }
 
 
 //argv[1] がデータファイル 初期時刻　最終時刻　時間刻み数　粒子数　質量　電荷　初期位置xyz　初速度xyz の順　
 //argy[2] がパラメータファイル　イオン数　確定原子番号　0 ランダム原子番号 0
-
 //int _tmain(int argc, _TCHAR* argv[])
 //{
 //	return 0;
 //}
-//
-//
+
+
 int main(int argc,char *argv[])
 {
-int i;
+	int i; //simulation試行回数のカウンター
+	cout<<"********************************PROGRAM START********************************"<<endl;
+	cout<<"length:nm,time:ps,energy:eV"<<endl;    
 
+	denka sim_data;				//class 生成
+	if(argv[1]==NULL){sim_data.message();}
 
-cout<<"********************************PROGRAM START********************************"<<endl;
-cout<<"length:nm,time:ps,energy:eV"<<endl;    
-
-  denka sim_data;				//class 生成
-  if(argv[1]==NULL){sim_data.message();}
-
-  sim_data.mk_out_dir(argv[1]); //出力ディレクトリ作成
+	sim_data.mk_out_dir(argv[1]); //出力ディレクトリ作成
 
 	sim_data.get_data(argv[1]);	//初期データ取得 ファイル作成のみに使用する
 	sim_data.open_output_files(argv[1]);//出力ファイル作成
 
-for(i=0;i<sim_data.trial;i++) {
-	sim_data.get_data(argv[1]);	//初期データ取得,電荷分配し直し
-
-	cout<<"******"<<i+1<<"th simulation"<< "****************************************************"<<endl;
-	sim_data.dist_charge();       //電荷をランダムに分配。
-	sim_data.keisan(i+1);       //ｎstepのシミュレーションをRunge-Kutta-Gillで解く
-
-
- }
-	sim_data.close_output_files(argv[1]);
-
-
+	for(i=0;i<sim_data.trial;i++){
+		sim_data.get_data(argv[1]);	//初期データ取得,電荷分配し直し
+		cout<<"******"<<i+1<<"th simulation"<< "****************************************************"<<endl;
+		sim_data.dist_charge();       //電荷をランダムに分配。
+		sim_data.keisan(i+1);       //ｎstepのシミュレーションをRunge-Kutta-Gillで解く
+		}
+		sim_data.close_output_files(argv[1]);
 }
 
